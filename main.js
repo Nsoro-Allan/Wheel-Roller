@@ -147,9 +147,16 @@ class WheelRoller {
   clearAll() {
     if (confirm("Clear all items?")) {
       this.items = [];
+      this.history = [];
       this.updateItemsList();
       this.drawWheel();
       this.saveToStorage();
+      // Clear history UI
+      const historyList = document.getElementById("historyList");
+      if (historyList) historyList.innerHTML = "";
+      // Hide result
+      const resultDiv = document.getElementById("result");
+      if (resultDiv) resultDiv.style.display = "none";
     }
   }
 
@@ -282,10 +289,12 @@ class WheelRoller {
 
   showResult() {
     const anglePerItem = (2 * Math.PI) / this.items.length;
-    const normalizedRotation =
-      (2 * Math.PI - this.currentRotation) % (2 * Math.PI);
-    const winnerIndex =
-      Math.floor(normalizedRotation / anglePerItem) % this.items.length;
+    // Pointer is at -Math.PI/2 (top of the wheel)
+    let pointerAngle = (3 * Math.PI) / 2;
+    let adjustedRotation =
+      ((this.currentRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    let diff = (pointerAngle - adjustedRotation + 2 * Math.PI) % (2 * Math.PI);
+    let winnerIndex = Math.floor(diff / anglePerItem) % this.items.length;
     const winner = this.items[winnerIndex];
 
     const resultDiv = document.getElementById("result");
@@ -384,6 +393,7 @@ class WheelRoller {
   saveWheel() {
     const data = {
       items: this.items,
+      history: this.history,
       settings: {
         wheelSize: this.wheelSize,
         spinDuration: this.spinDuration,
@@ -415,6 +425,7 @@ class WheelRoller {
           try {
             const data = JSON.parse(e.target.result);
             this.items = data.items || [];
+            this.history = data.history || [];
             if (data.settings) {
               this.wheelSize = data.settings.wheelSize || 400;
               this.spinDuration = data.settings.spinDuration || 4000;
@@ -422,9 +433,19 @@ class WheelRoller {
               this.darkMode = data.settings.darkMode || false;
             }
             this.updateUI();
-            this.updateDarkModeUI();
-          } catch (error) {
-            alert("Invalid file format");
+            // Update history display
+            const historyList = document.getElementById("historyList");
+            if (historyList) {
+              historyList.innerHTML = "";
+              this.history.forEach((entry) => {
+                const div = document.createElement("div");
+                div.className = "history-item";
+                div.innerHTML = `<strong>${entry.item}</strong> <small>(${entry.time})</small>`;
+                historyList.appendChild(div);
+              });
+            }
+          } catch (err) {
+            alert("Invalid file format.");
           }
         };
         reader.readAsText(file);
