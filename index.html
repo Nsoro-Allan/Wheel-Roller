@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel Roller - Interactive Spinning Wheel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="dark-mode-toggle" onclick="toggleDarkMode()" id="darkModeToggle">
+                <span id="darkModeIcon">🌙</span>
+                <span id="darkModeText">Dark</span>
+            </button>
+            <h1>🎯 Wheel Roller</h1>
+            <p>Create your custom spinning wheel and let fate decide!</p>
+        </div>
+
+        <div class="controls">
+            <h2>Wheel Items</h2>
+            
+            <div class="presets">
+                <button class="preset-btn" onclick="loadPreset('yesno')">Yes/No</button>
+                <button class="preset-btn" onclick="loadPreset('numbers')">Numbers 1-10</button>
+                <button class="preset-btn" onclick="loadPreset('colors')">Colors</button>
+                <button class="preset-btn" onclick="loadPreset('food')">Food Options</button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="itemInput" placeholder="Enter an item..." maxlength="30">
+                <button class="btn btn-primary" onclick="addItem()">Add</button>
+            </div>
+
+            <div class="items-list" id="itemsList"></div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+                <button class="btn btn-secondary" onclick="saveWheel()">Save</button>
+                <button class="btn btn-secondary" onclick="loadWheel()">Load</button>
+            </div>
+
+            <div class="settings">
+                <h3>Settings</h3>
+                
+                <div class="setting-group">
+                    <label for="wheelSize">Wheel Size: <span id="sizeValue">400</span>px</label>
+                    <input type="range" id="wheelSize" min="300" max="500" value="400" oninput="updateWheelSize(this.value)">
+                </div>
+
+                <div class="setting-group">
+                    <label for="spinDuration">Spin Duration: <span id="durationValue">4</span>s</label>
+                    <input type="range" id="spinDuration" min="2" max="8" value="4" oninput="updateSpinDuration(this.value)">
+                </div>
+
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="soundEnabled" checked onchange="toggleSound()"> 
+                        Enable Sound Effects
+                    </label>
+                </div>
+            </div>
+
+            <div class="history">
+                <h3>Recent Results</h3>
+                <div class="history-list" id="historyList"></div>
+            </div>
+        </div>
+
+        <div class="wheel-container">
+            <div class="wheel-wrapper">
+                <div class="pointer"></div>
+                <canvas id="wheelCanvas" width="400" height="400"></canvas>
+            </div>
+            
+            <button class="spin-btn" id="spinBtn" onclick="spinWheel()">
+                🎯 SPIN THE WHEEL
+            </button>
+            
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script src="./main.js"></script>
+</body>
+</html>
