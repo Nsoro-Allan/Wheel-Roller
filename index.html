@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wheel Roller - Interactive Spinning Wheel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css" />
     <link rel="shortcut icon" href="./icon.png" type="image/x-icon">
   </head>
@@ -65,10 +68,8 @@
 
         <div class="items-list" id="itemsList"></div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 20px">
-          <button class="btn btn-secondary" onclick="clearAll()">
-            Clear All
-          </button>
+        <div class="action-buttons">
+          <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
           <button class="btn btn-secondary" onclick="saveWheel()">Save</button>
           <button class="btn btn-secondary" onclick="loadWheel()">Load</button>
         </div>
@@ -118,7 +119,10 @@
         </div>
 
         <div class="history">
-          <h3>Recent Results</h3>
+          <div class="history-header">
+            <h3>Recent Results</h3>
+            <button class="btn btn-secondary btn-small" onclick="clearHistory()">Clear</button>
+          </div>
           <div class="history-list" id="historyList"></div>
         </div>
       </div>

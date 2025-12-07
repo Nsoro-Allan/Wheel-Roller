@@ -27,6 +27,10 @@ class WheelRoller {
     this.history = [];
     this.soundEnabled = true;
     this.darkMode = false;
+    
+    // Fair randomization: shuffle bag ensures each item is picked before repeats
+    this.shuffleBag = [];
+    this.recentWinners = []; // Track last few winners to avoid immediate repeats
 
     this.setupEventListeners();
     this.setupResponsiveCanvas();
@@ -37,20 +41,35 @@ class WheelRoller {
 
   initDarkMode() {
     // Check for saved dark mode preference or system preference
-    const savedDarkMode = window.wheelData?.settings?.darkMode;
     const systemDarkMode = window.matchMedia(
       "(prefers-color-scheme: dark)"
     ).matches;
 
-    this.darkMode =
-      savedDarkMode !== undefined ? savedDarkMode : systemDarkMode;
+    // darkMode is already loaded from storage in loadFromStorage()
+    // Only use system preference if no saved preference exists
+    try {
+      const stored = localStorage.getItem("wheelRollerData");
+      if (!stored || !JSON.parse(stored).settings?.darkMode) {
+        this.darkMode = systemDarkMode;
+      }
+    } catch (e) {
+      this.darkMode = systemDarkMode;
+    }
+    
     this.updateDarkModeUI();
 
     // Listen for system theme changes
     window
       .matchMedia("(prefers-color-scheme: dark)")
       .addEventListener("change", (e) => {
-        if (window.wheelData?.settings?.darkMode === undefined) {
+        try {
+          const stored = localStorage.getItem("wheelRollerData");
+          const hasSavedPref = stored && JSON.parse(stored).settings?.darkMode !== undefined;
+          if (!hasSavedPref) {
+            this.darkMode = e.matches;
+            this.updateDarkModeUI();
+          }
+        } catch (err) {
           this.darkMode = e.matches;
           this.updateDarkModeUI();
         }
@@ -127,6 +146,7 @@ class WheelRoller {
       this.updateItemsList();
       this.drawWheel();
       this.saveToStorage();
+      this.resetFairness(); // Reset shuffle bag when items change
     }
   }
 
@@ -135,6 +155,13 @@ class WheelRoller {
     this.updateItemsList();
     this.drawWheel();
     this.saveToStorage();
+    this.resetFairness(); // Reset shuffle bag when items change
+  }
+  
+  // Reset fairness tracking when items change
+  resetFairness() {
+    this.shuffleBag = [];
+    this.recentWinners = [];
   }
 
   editItem(index) {
@@ -154,6 +181,7 @@ class WheelRoller {
       this.updateItemsList();
       this.drawWheel();
       this.saveToStorage();
+      this.resetFairness(); // Reset shuffle bag
       // Clear history UI
       const historyList = document.getElementById("historyList");
       if (historyList) historyList.innerHTML = "";
@@ -254,6 +282,72 @@ class WheelRoller {
     this.ctx.stroke();
   }
 
+  // Cryptographically secure random number generator
+  secureRandom() {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return array[0] / (0xFFFFFFFF + 1);
+  }
+
+  // Fisher-Yates shuffle with secure randomness
+  shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(this.secureRandom() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // Get next fair winner using shuffle bag algorithm
+  getNextFairWinner() {
+    // Refill and shuffle the bag if empty
+    if (this.shuffleBag.length === 0) {
+      this.shuffleBag = this.shuffleArray([...Array(this.items.length).keys()]);
+      
+      // If we have recent winners and enough items, avoid immediate repeat
+      if (this.recentWinners.length > 0 && this.items.length > 2) {
+        const lastWinner = this.recentWinners[0];
+        // If the first item in new bag is same as last winner, swap it
+        if (this.shuffleBag[0] === lastWinner) {
+          const swapIdx = 1 + Math.floor(this.secureRandom() * (this.shuffleBag.length - 1));
+          [this.shuffleBag[0], this.shuffleBag[swapIdx]] = [this.shuffleBag[swapIdx], this.shuffleBag[0]];
+        }
+      }
+    }
+
+    // Pop the next winner from the bag
+    const winnerIndex = this.shuffleBag.shift();
+    
+    // Track recent winners (keep last 3)
+    this.recentWinners.unshift(winnerIndex);
+    if (this.recentWinners.length > 3) {
+      this.recentWinners.pop();
+    }
+
+    return winnerIndex;
+  }
+
+  // Calculate rotation needed to land on specific index
+  calculateTargetRotation(targetIndex) {
+    const anglePerItem = (2 * Math.PI) / this.items.length;
+    const pointerAngle = (3 * Math.PI) / 2; // Pointer at top
+    
+    // Calculate the angle where target segment's center should be
+    const targetCenter = targetIndex * anglePerItem + anglePerItem / 2;
+    
+    // Add randomness within the segment (not just center) for visual variety
+    const segmentVariance = (this.secureRandom() - 0.5) * anglePerItem * 0.7;
+    
+    // Calculate required rotation
+    let targetRotation = pointerAngle - targetCenter + segmentVariance;
+    
+    // Normalize to positive
+    targetRotation = ((targetRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    
+    return targetRotation;
+  }
+
   spinWheel() {
     if (this.isSpinning || this.items.length < 2) return;
 
@@ -261,10 +355,23 @@ class WheelRoller {
     document.getElementById("spinBtn").disabled = true;
     document.getElementById("result").style.display = "none";
 
+    // Get the fair winner first
+    const winnerIndex = this.getNextFairWinner();
+    
+    // Calculate target rotation to land on winner
+    const targetFinalRotation = this.calculateTargetRotation(winnerIndex);
+    
+    // Add full rotations for visual effect (5-10 rotations)
+    const fullRotations = (5 + Math.floor(this.secureRandom() * 6)) * 2 * Math.PI;
+    
     const startTime = Date.now();
     const startRotation = this.currentRotation;
-    const spinAmount = (Math.random() * 10 + 5) * 2 * Math.PI; // 5-15 full rotations
-    const targetRotation = startRotation + spinAmount;
+    
+    // Calculate total spin amount
+    let spinAmount = fullRotations + targetFinalRotation - (startRotation % (2 * Math.PI));
+    if (spinAmount < fullRotations) {
+      spinAmount += 2 * Math.PI; // Ensure minimum rotations
+    }
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
@@ -279,7 +386,7 @@ class WheelRoller {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        this.currentRotation = targetRotation % (2 * Math.PI);
+        this.currentRotation = (startRotation + spinAmount) % (2 * Math.PI);
         this.drawWheel();
         this.showResult();
         this.isSpinning = false;
@@ -315,16 +422,37 @@ class WheelRoller {
     });
     if (this.history.length > 10) this.history.pop();
 
+    this.updateHistoryList();
+    this.saveToStorage();
+  }
+
+  updateHistoryList() {
     const historyList = document.getElementById("historyList");
     historyList.innerHTML = "";
 
-    this.history.forEach((entry) => {
+    this.history.forEach((entry, index) => {
       const div = document.createElement("div");
       div.className = "history-item";
-      div.innerHTML = `<strong>${entry.item}</strong> <small>(${entry.time})</small>`;
+      div.innerHTML = `
+        <div class="history-item-content">
+          <strong>${entry.item}</strong>
+          <small>(${entry.time})</small>
+        </div>
+        <button onclick="wheel.removeHistoryItem(${index})" title="Remove">×</button>
+      `;
       historyList.appendChild(div);
     });
+  }
 
+  removeHistoryItem(index) {
+    this.history.splice(index, 1);
+    this.updateHistoryList();
+    this.saveToStorage();
+  }
+
+  clearHistory() {
+    this.history = [];
+    this.updateHistoryList();
     this.saveToStorage();
   }
 
@@ -391,6 +519,7 @@ class WheelRoller {
     this.updateItemsList();
     this.drawWheel();
     this.saveToStorage();
+    this.resetFairness(); // Reset shuffle bag when preset loaded
   }
 
   saveWheel() {
@@ -437,16 +566,7 @@ class WheelRoller {
             }
             this.updateUI();
             // Update history display
-            const historyList = document.getElementById("historyList");
-            if (historyList) {
-              historyList.innerHTML = "";
-              this.history.forEach((entry) => {
-                const div = document.createElement("div");
-                div.className = "history-item";
-                div.innerHTML = `<strong>${entry.item}</strong> <small>(${entry.time})</small>`;
-                historyList.appendChild(div);
-              });
-            }
+            this.updateHistoryList();
           } catch (err) {
             alert("Invalid file format.");
           }
@@ -480,32 +600,31 @@ class WheelRoller {
         darkMode: this.darkMode,
       },
     };
-    // Note: Using a simple variable instead of localStorage for artifact compatibility
-    window.wheelData = data;
+    try {
+      localStorage.setItem("wheelRollerData", JSON.stringify(data));
+    } catch (e) {
+      console.warn("Could not save to localStorage:", e);
+    }
   }
 
   loadFromStorage() {
-    if (window.wheelData) {
-      const data = window.wheelData;
-      this.items = data.items || [];
-      this.history = data.history || [];
-      if (data.settings) {
-        this.wheelSize = data.settings.wheelSize || 400;
-        this.spinDuration = data.settings.spinDuration || 4000;
-        this.soundEnabled = data.settings.soundEnabled !== false;
-        this.darkMode = data.settings.darkMode || false;
+    try {
+      const stored = localStorage.getItem("wheelRollerData");
+      if (stored) {
+        const data = JSON.parse(stored);
+        this.items = data.items || [];
+        this.history = data.history || [];
+        if (data.settings) {
+          this.wheelSize = data.settings.wheelSize || 400;
+          this.spinDuration = data.settings.spinDuration || 4000;
+          this.soundEnabled = data.settings.soundEnabled !== false;
+          this.darkMode = data.settings.darkMode || false;
+        }
+        this.updateUI();
+        this.updateHistoryList();
       }
-      this.updateUI();
-
-      // Update history display
-      const historyList = document.getElementById("historyList");
-      historyList.innerHTML = "";
-      this.history.forEach((entry) => {
-        const div = document.createElement("div");
-        div.className = "history-item";
-        div.innerHTML = `<strong>${entry.item}</strong> <small>(${entry.time})</small>`;
-        historyList.appendChild(div);
-      });
+    } catch (e) {
+      console.warn("Could not load from localStorage:", e);
     }
   }
 }
@@ -551,6 +670,10 @@ function loadWheel() {
 
 function toggleDarkMode() {
   wheel.toggleDarkMode();
+}
+
+function clearHistory() {
+  wheel.clearHistory();
 }
 
 // Initialize the wheel when page loads
