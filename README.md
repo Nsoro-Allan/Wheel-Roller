@@ -1,21 +1,42 @@
-# Wheel Roller
+# 🎯 Wheel Roller
 
-This project is a simple web application for simulating a wheel roller. It consists of the following files:
-
-- `index.html`: The main HTML file that sets up the structure of the web page.
-- `main.js`: Contains the JavaScript logic for the wheel roller simulation.
-- `style.css`: Provides the styling for the application.
-
-## Getting Started
-
-1. Open `index.html` in your web browser to run the application.
-2. Make sure `main.js` and `style.css` are in the same directory as `index.html`.
+An interactive spinning wheel web app that lets you create custom wheels and spin to make random decisions. Perfect for games, decision-making, or just having fun!
 
 ## Features
 
-- Interactive wheel roller simulation (details in `main.js`).
-- Customizable styles via `style.css`.
+- **Custom Wheel Creation** - Add, edit, and remove items to build your own wheel
+- **Preset Options** - Quick-load common wheel types:
+  - Yes/No decisions
+  - Numbers 1-10
+  - Colors
+  - Food options
+- **Customizable Settings**
+  - Adjustable wheel size (300-500px)
+  - Spin duration control (2-8 seconds)
+  - Sound effects toggle
+- **Dark Mode** - Toggle between light and dark themes (respects system preference)
+- **Save/Load** - Export and import wheel configurations as JSON files
+- **Spin History** - Track your last 10 results
+- **Keyboard Support** - Press Space to spin
+- **Responsive Design** - Works on desktop, tablet, and mobile devices
 
-## License
+## Getting Started
 
-This project is provided as-is for educational and demonstration purposes.
+1. Open `index.html` in any modern web browser
+2. Add items to your wheel using the input field, or load a preset
+3. Click "SPIN THE WHEEL" or press Space to spin
+4. The winner is displayed after the wheel stops
+
+## Files
+
+| File | Description |
+|------|-------------|
+| `index.html` | Main HTML structure |
+| `main.js` | WheelRoller class with all app logic |
+| `style.css` | Styling including dark mode and responsive layouts |
+| `icon.png` | Favicon |
+
+## Browser Support
+
+Works in all modern browsers with HTML5 Canvas and Web Audio API support.
+

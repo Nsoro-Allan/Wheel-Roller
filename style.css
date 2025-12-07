@@ -131,6 +131,10 @@ body.dark-mode .settings {
   gap: 8px;
 }
 
+.theme-icon {
+  flex-shrink: 0;
+}
+
 .dark-mode-toggle:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);

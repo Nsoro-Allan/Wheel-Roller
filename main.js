@@ -65,16 +65,19 @@ class WheelRoller {
 
   updateDarkModeUI() {
     const body = document.body;
-    const icon = document.getElementById("darkModeIcon");
+    const moonIcon = document.getElementById("moonIcon");
+    const sunIcon = document.getElementById("sunIcon");
     const text = document.getElementById("darkModeText");
 
     if (this.darkMode) {
       body.classList.add("dark-mode");
-      icon.textContent = "☀️";
+      moonIcon.style.display = "none";
+      sunIcon.style.display = "block";
       text.textContent = "Light";
     } else {
       body.classList.remove("dark-mode");
-      icon.textContent = "🌙";
+      moonIcon.style.display = "block";
+      sunIcon.style.display = "none";
       text.textContent = "Dark";
     }
 
